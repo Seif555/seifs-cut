@@ -1,0 +1,6 @@
+{
+  "name": "seifs-cut",
+  "private": true,
+  "description": "Seif's Cut: the 1,300 kcal plan and exercise-bike programme, with progress synced by passphrase.",
+  "engines": { "node": ">=18" }
+}

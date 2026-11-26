@@ -4,8 +4,7 @@
 //   PUT /api/state   { base, data }  → { v }
 //                    409 { v } when another device saved after `base`: the page reads that, merges, and saves again
 // No packages: Upstash's REST API through fetch (Node 18 and later).
-const URL_ = process.env.KV_REST_API_URL || process.env.UPSTASH_REDIS_REST_URL;
-const TOKEN = process.env.KV_REST_API_TOKEN || process.env.UPSTASH_REDIS_REST_TOKEN;
+const { URL_, TOKEN } = require('./_db').env();
 const MAX = 512 * 1024;
 const KD = 'seifcut:plan', KV = 'seifcut:ver';
 // compare-and-set: the write lands only on top of the version the page last read

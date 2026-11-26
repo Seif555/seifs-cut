@@ -2687,6 +2687,7 @@ if (typeof module !== 'undefined') module.exports = ENG;
           local: function () { return "The site can't save online right now, so only this device keeps your changes. Reload in a minute; if this stays, copy a backup."; },
           none: function () { return "This browser doesn't let the page keep anything, and the site can't save online right now, so nothing you tick is kept after you close it. Copy a backup before you close it."; }
         },
+        importDoneT: 'Your progress from the Claude version is here: weigh-ins, swaps and ticks.',
         svWhy: function (acct, dev) { return 'Details: saving online ' + acct + ' · this device ' + (dev ? 'keeps data' : "can't keep data"); },
         svAcct: { connected: 'on', nodb: 'not connected to its database yet', waiting: 'not answering yet', off: 'off', none: 'off', error: 'error' },
         riskH: { nodb: 'Not saving online yet', slow: "Can't reach the site's server yet", retry: "Your last changes haven't reached the server", local: 'Saved on this device only' },
@@ -2710,6 +2711,7 @@ if (typeof module !== 'undefined') module.exports = ENG;
           local: function () { return 'الموقع مش قادر يسجل أونلاين دلوقتي، فالجهاز ده بس اللي شايل تغييراتك. اعمل ريلود بعد دقيقة؛ ولو فضلت كده، خد نسخة احتياطية.'; },
           none: function () { return 'المتصفح ده مش بيسيب الصفحة تحفظ أي حاجة، والموقع مش قادر يسجل أونلاين دلوقتي، فأي علامة بتروح أول ما تقفل. خد نسخة احتياطية قبل ما تقفل.'; }
         },
+        importDoneT: 'تقدّمك من نسخة Claude وصل هنا: الأوزان والتبديلات والعلامات.',
         svWhy: function (acct, dev) { return 'تفاصيل: التسجيل أونلاين ' + acct + ' · الجهاز ده ' + (dev ? 'بيحفظ' : 'مش بيحفظ'); },
         svAcct: { connected: 'شغال', nodb: 'لسه مش متوصل بقاعدة البيانات', waiting: 'لسه مارداش', off: 'مقفول', none: 'مقفول', error: 'فيه خطأ' },
         riskH: { nodb: 'لسه مش بيسجل أونلاين', slow: 'لسه مش واصل لسيرفر الموقع', retry: 'آخر تغييراتك ماوصلتش للسيرفر', local: 'متسجل على الجهاز ده بس' },
@@ -3193,7 +3195,28 @@ if (typeof module !== 'undefined') module.exports = ENG;
       if (state) { dirty = true; scheduleFlush(0); }
       decide('db');
     }
+    if (snap.imp && !importDone && state && fresh && applyImport(snap.imp)) {
+      importDone = true; importAck = true; dirty = true;
+      render(); scheduleFlush(0); toast(T_().importDoneT);
+    }
     renderSave();
+  }
+  // The web copy (Nov 26): his progress from the Claude version, moved over once by the server (api/import.js). Merged
+  // like a backup, except that what this copy already has wins: only what it lacks is taken (weigh-ins, ticks, a week's
+  // swaps or make-up it has none of).
+  var importDone = false, importAck = false;
+  function applyImport(raw) {
+    if (!raw || typeof raw !== 'object' || !state) return false;
+    var bak = normState(raw);
+    prune(bak);
+    var m = mergeStates(state, bak, state);
+    if (!m.sub) m.sub = blankSub();
+    Object.keys((bak.sub && bak.sub.wk) || {}).forEach(function (w) { if (!m.sub.wk[w]) m.sub.wk[w] = clone(bak.sub.wk[w]); });
+    Object.keys((bak.sub && bak.sub.perm) || {}).forEach(function (g) { if (!m.sub.perm[g]) m.sub.perm[g] = bak.sub.perm[g]; });
+    if (!m.mk) m.mk = {};
+    Object.keys(bak.mk || {}).forEach(function (w) { if (!m.mk[w]) m.mk[w] = clone(bak.mk[w]); });
+    state = m; lsSet(LS_STATE, state);
+    return true;
   }
   // JSON with sorted keys: the same content always gives the same text
   function canon(x) {
@@ -3280,7 +3303,7 @@ if (typeof module !== 'undefined') module.exports = ENG;
             if (stopped) return;
             var v = +r.v || 0;
             base = v;
-            if (seen === null || v !== seen) { seen = v; cb({ exists: !!r.data, data: function () { return r.data; }, metadata: { fromCache: false, hasPendingWrites: false } }); }
+            if (seen === null || v !== seen || (r.import && !importDone)) { seen = v; cb({ exists: !!r.data, data: function () { return r.data; }, imp: r.import || null, metadata: { fromCache: false, hasPendingWrites: false } }); }
             timer = setTimeout(poll, document.hidden ? POLL * 4 : POLL);
           }, function (e) { if (stopped) return; stopped = true; poke = null; err(e); });
         }
@@ -3289,7 +3312,9 @@ if (typeof module !== 'undefined') module.exports = ENG;
         return function () { stopped = true; clearTimeout(timer); poke = null; };
       },
       set: function (body) {
-        return req('PUT', { base: base || 0, data: body }).then(function (r) { base = seen = +r.v || 0; return r; }, function (e) {
+        var pay = { base: base || 0, data: body };
+        if (importAck) pay.importDone = true;
+        return req('PUT', pay).then(function (r) { base = seen = +r.v || 0; if (pay.importDone) importAck = false; return r; }, function (e) {
           if (e.code === 'conflict' && poke) setTimeout(poke, 0);
           throw e;
         });

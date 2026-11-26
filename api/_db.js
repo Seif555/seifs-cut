@@ -16,4 +16,12 @@ function env() {
   pairs.sort((a, b) => (/upstash\.io/.test(b.URL_) ? 1 : 0) - (/upstash\.io/.test(a.URL_) ? 1 : 0));
   return pairs[0] || { URL_: '', TOKEN: '', urlVar: null, tokenVar: null };
 }
-module.exports = { env };
+// one Redis command through Upstash's REST API (`e`: the variables as read when the function started)
+async function redis(cmd, e) {
+  e = e || env();
+  const r = await fetch(e.URL_, { method: 'POST', headers: { Authorization: 'Bearer ' + e.TOKEN, 'Content-Type': 'application/json' }, body: JSON.stringify(cmd) });
+  const j = await r.json().catch(() => ({}));
+  if (!r.ok || j.error) throw new Error(j.error || 'redis ' + r.status);
+  return j.result;
+}
+module.exports = { env, redis };

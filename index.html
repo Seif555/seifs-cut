@@ -2882,7 +2882,9 @@ if (typeof module !== 'undefined') module.exports = ENG;
   // Wednesday Nov 25 the diet wasn't quite followed. Applied once, so undoing them on the page sticks.
   var SEED = { start: '2026-11-15', from: '2026-11-22', wt: { '2026-11-15': 105.6, '2026-11-16': 104.3, '2026-11-17': 102.5, '2026-11-18': 103.05, '2026-11-22': 103.25 },
     off: ['2026-11-19', '2026-11-20', '2026-11-21'], ex: { '2026-11-19': '', '2026-11-20': '', '2026-11-21': '', '2026-11-22': '' },
-    v2: { ex: { '2026-11-22': 'BS', '2026-11-24': 'BS' }, diet: { '2026-11-25': 1 } } };
+    v2: { ex: { '2026-11-22': 'BS', '2026-11-24': 'BS' }, diet: { '2026-11-25': 1 } },
+    // Nov 26 (seed 3): no bike on Wednesday Nov 25 either
+    v3: { ex: { '2026-11-25': 'B' } } };
   function seedWt(b) {
     if (b.start !== SEED.start) return;
     var has = Object.prototype.hasOwnProperty;
@@ -2896,6 +2898,10 @@ if (typeof module !== 'undefined') module.exports = ENG;
       if (!b.diet) b.diet = {};
       Object.keys(SEED.v2.diet).forEach(function (k) { if (!has.call(b.diet, k)) b.diet[k] = SEED.v2.diet[k]; });
       b.seedV = 2;
+    }
+    if (!(b.seedV >= 3)) {
+      Object.keys(SEED.v3.ex).forEach(function (k) { if (!b.ex[k]) b.ex[k] = SEED.v3.ex[k]; });
+      b.seedV = 3;
     }
   }
   function normState(s) {

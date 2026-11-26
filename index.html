@@ -3077,7 +3077,8 @@ if (typeof module !== 'undefined') module.exports = ENG;
   function provisional() {
     if (!decided || !dbKnown || welcomeStep === 'week' || (state && state.mode)) return;
     if (!state) state = blankState();
-    if (ymd(clock().day) >= SEED.from) { state.start = SEED.start; state.mode = 'new'; seedWt(state); return; }
+    // Seif's own plan, on a device that has nothing of it yet: he started on Nov 15, so it is under way, not "Start here"
+    if (ymd(clock().day) >= SEED.from) { state.start = SEED.start; state.mode = 'ongoing'; seedWt(state); return; }
     var d1 = firstDay1(clock().day);
     state.start = ymd(d1); state.mode = diffDays(d1, clock().day) >= 0 ? 'ongoing' : 'new'; askDay1 = true;
   }
